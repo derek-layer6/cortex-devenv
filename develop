@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# realpath for OSX
+# https://stackoverflow.com/a/3572105
+function realpath() {
+    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
+}
+
+function usage() {
+    echo "Usage: $0 path [port]"
+    exit 1
+}
+
+if [ $# -eq 2 ]; then
+    DIR=$1
+    PORT=$2
+
+    echo "Docker port $PORT will be exposed at $PORT"
+
+	docker run \
+		-it \
+		--hostname=cortex \
+        -p 127.0.0.1:$PORT:$PORT/tcp \
+        --mount type=bind,source=$(realpath $DIR),target=/mnt \
+	    --mount type=bind,source=${HOME},target=/home/developer \
+		cortex-development
+elif [ $# -eq 1 ]; then
+    DIR=$1
+
+    if [ ! -d $DIR ]; then
+        echo "Error: could not find directory '$DIR'."
+        usage
+    fi
+
+	docker run \
+		-it \
+		--hostname=cortex \
+        --mount type=bind,source=$(realpath $DIR),target=/mnt \
+	    --mount type=bind,source=${HOME},target=/home/developer \
+		cortex-development
+else
+    usage
+fi
