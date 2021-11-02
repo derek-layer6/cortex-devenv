@@ -11,33 +11,28 @@ function usage() {
     exit 1
 }
 
-if [ $# -eq 2 ]; then
-    DIR=$1
-    PORT=$2
+OPTIONS=""
 
+if [ $# -lt 1 ]; then
+    DIR="."
+else
+    DIR=$1
+fi
+
+# Note that mounting user's home directory results in high CPU if
+# Docker "use gRPC FUSE" for file sharing is enabled.
+OPTIONS=$OPTIONS" --mount type=bind,source=$(realpath $DIR),target=/mnt "
+OPTIONS=$OPTIONS" --mount type=bind,source=${HOME}/.m2,target=/home/developer/.m2 "
+
+if [ $# -ge 2 ]; then
+    PORT=$2
     echo "Docker port $PORT will be exposed at $PORT"
 
-	docker run \
-		-it \
-		--hostname=cortex \
-        -p 127.0.0.1:$PORT:$PORT/tcp \
-        --mount type=bind,source=$(realpath $DIR),target=/mnt \
-	    --mount type=bind,source=${HOME},target=/home/developer \
-		cortex-development
-elif [ $# -eq 1 ]; then
-    DIR=$1
-
-    if [ ! -d $DIR ]; then
-        echo "Error: could not find directory '$DIR'."
-        usage
-    fi
-
-	docker run \
-		-it \
-		--hostname=cortex \
-        --mount type=bind,source=$(realpath $DIR),target=/mnt \
-	    --mount type=bind,source=${HOME},target=/home/developer \
-		cortex-development
-else
-    usage
+    OPTIONS=$OPTIONS" -p 127.0.0.1:$PORT:$PORT/tcp "
 fi
+
+docker run \
+	-it \
+	--hostname=cortex \
+    $OPTIONS \
+	cortex-development
